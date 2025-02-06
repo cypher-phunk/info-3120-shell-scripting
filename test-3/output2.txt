@@ -1,0 +1,2 @@
+sed: can't read e: No such file or directory
+sed: can't read s/\(.*\):\(.*\):\(.*\):\(.*\):\(.*\):\(.*\):\(.*\)/\1:\5:\6:\7/: No such file or directory
