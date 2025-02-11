@@ -1,0 +1,8 @@
+line1:field1:field2:field3:field4:field5:field6:field7
+line2:fieldA:fieldB:fieldC:fieldD:fieldE:fieldF:fieldG
+line3:fieldX:fieldY:fieldZ:fieldW:fieldV:fieldU:fieldT
+line4:abc,def,ghi
+line5:start,middle,end
+line6:spam,eggs,bacon
+line7:foo,bar,baz
+line8:some:text:here
