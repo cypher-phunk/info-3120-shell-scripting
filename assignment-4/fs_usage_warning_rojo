@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# fs_usage_warning - Script to warn users about file system usage
+
+# storage capacity threshold
+CAPACITY_THRESHOLD=60
+
+#######################################
+# Parse command line options (Prelim execution) 
+# Globals:
+#   CAPACITY_THRESHOLD
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
+while getopts ":c:" opt; do
+  case ${opt} in
+    c)
+      if [[ "${OPTARG}" =~ ^[0-9]+$ ]]; then
+        CAPACITY_THRESHOLD="${OPTARG}"
+      else
+        echo "Error: Please set capacity threshold to a number." >&2
+        exit 1
+      fi
+      ;;
+    \?)
+      echo "Invalid option: -${OPTARG}" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -${OPTARG} requires an argument." >&2
+      exit 1
+      ;;
+    *)
+      echo "Unknown error" >&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [[ $# -eq 0 ]]; then
+  echo "Error: Please specify an email!" >&2
+  echo "Syntax: fs_usage_warning [-c capacity-percentage] email-address [email-address] ..." >&2
+  exit 1
+fi
+
+#######################################
+# Validate email addresses
+# Globals:
+#   EMAIL_ADDRESSES
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
+EMAIL_ADDRESSES=("$@")
+validate_emails() {
+  local valid_emails=()
+  
+  for email in "${EMAIL_ADDRESSES[@]}"; do
+    # If email does not contain @, assume it's a local username
+    if [[ "${email}" != *@* ]]; then
+      email="${email}@cyberserver.uml.edu"
+    fi
+    
+    valid_emails+=("${email}")
+  done
+  
+  EMAIL_ADDRESSES=("${valid_emails[@]}")
+}
+
+validate_emails
+
+#######################################
+# Send email notification
+# Globals:
+#   CAPACITY_THRESHOLD
+#   EMAIL_ADDRESSES
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
+send_email_notification() {
+  local filesystem="$1"
+  local usage="$2"
+  local df_line="$3"
+  local header="$4"
+  local subject=""
+  local body=""
+  
+  usage_num=${usage%\%}
+  
+  if [[ "${usage_num}" -lt "${CAPACITY_THRESHOLD}" ]]; then
+    return
+  fi
+  
+  if [[ "${usage_num}" -ge 90 ]]; then
+    subject="Critical Warning: the file system ${filesystem} is greater than or equal to 90% capacity"
+  else
+    subject="Warning: the file system ${filesystem} is above ${CAPACITY_THRESHOLD}% used"
+  fi
+  
+  body="${header}
+${df_line}"
+  
+  # Send email to all recipients using mailx with here-document
+  for recipient in "${EMAIL_ADDRESSES[@]}"; do
+    mailx -s "${subject}" "${recipient}" << EOF
+${body}
+EOF
+  done
+}
+
+#######################################
+# Main script execution starts here
+#######################################
+DF_OUTPUT=$(df -k -t ext4 -t ext2)
+
+HEADER=$(echo "${DF_OUTPUT}" | head -1)
+
+# Process each filesystem line (skipping the header)
+# shellcheck disable=SC2312
+echo "${DF_OUTPUT}" | tail -n +2 | while read -r line; do
+  # Using awk for more reliable parsing
+  USAGE=$(echo "${line}" | awk '{print $5}')
+  FILESYSTEM=$(echo "${line}" | awk '{print $6}')
+  
+  send_email_notification "${FILESYSTEM}" "${USAGE}" "${line}" "${HEADER}"
+done
+
+exit 0

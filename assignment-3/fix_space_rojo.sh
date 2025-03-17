@@ -36,6 +36,15 @@ find_files()
   find "$1" -depth -type f -name '* *' -print
 }
 
+#######################################
+# Rename files and directories with spaces in their names
+# Globals:
+#   None
+# Arguments:
+#   $1 - directory
+# Returns:
+#   None
+#######################################
 my_rename() {
   # 1. Check if the directory where $1 resides is writeable
   PARENT_DIR="$(dirname "$1")"
@@ -60,41 +69,57 @@ my_rename() {
   return 0
 }
 
+#######################################
+# Fix directories with spaces in their names
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
 fix_dirs()
 {
+  # shellcheck disable=SC2312
   find_dirs "$1" | while read -r dir; do
-    # Get the base name and parent directory of the current directory
     dir_name="$(basename "${dir}")"
     parent_dir="$(dirname "${dir}")"
     
-    # Create the new name by replacing spaces with dashes in the directory name only
     new_name="${dir_name// /-}"
     
-    # Only perform rename if the names are different
     if [[ "${dir_name}" != "${new_name}" ]]; then
       my_rename "${dir}" "${parent_dir}/${new_name}"
     fi
   done
 }
 
+#######################################
+# Fix files with spaces in their names
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
 fix_files()
 {
+  # shellcheck disable=SC2312
   find_files "$1" | while read -r file; do
-    # Get the base name and parent directory of the current file
     file_name="$(basename "${file}")"
     parent_dir="$(dirname "${file}")"
     
-    # Create the new name by replacing spaces with dashes in the file name only
     new_name="${file_name// /-}"
     
-    # Only perform rename if the names are different
     if [[ "${file_name}" != "${new_name}" ]]; then
       my_rename "${file}" "${parent_dir}/${new_name}"
     fi
   done
 }
 
+#######################################
 # Main script execution starts here
+#######################################
 WFILE=
 WDIR=
 DIR=
@@ -103,6 +128,7 @@ if [[ "$#" -eq 0 ]]; then
   usage
 fi
 
+# Parse command line options
 while [[ $# -gt 0 ]]; do
   case $1 in
   -d)
@@ -116,13 +142,11 @@ while [[ $# -gt 0 ]]; do
     ;;
   *)
     if [[ -d "$1" ]]; then
-      # Additional checks for directory
       if [[ "$1" == "." || "$1" == ".." ]]; then
         echo "Error: Cannot use . or .. as the directory."
         exit 1
       fi
       
-      # Check if it's the current directory
       REAL_PATH=$(realpath "$1")
       CURRENT_DIR=$(realpath ".")
       if [[ "${REAL_PATH}" == "${CURRENT_DIR}" ]]; then
@@ -140,7 +164,6 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-# Check if directory is specified
 if [[ -z "${DIR}" ]]; then
   echo "Error: Directory not specified."
   usage
@@ -152,9 +175,8 @@ if [[ -z "${WDIR}" ]] && [[ -z "${WFILE}" ]]; then
   usage
 fi
 
-# Execute the appropriate functions based on flags
+# Perform the necessary operation based on flags
 if [[ -n "${WDIR}" ]] && [[ -n "${WFILE}" ]]; then
-  # Process files first, then directories (depth-first)
   fix_files "${DIR}"
   fix_dirs "${DIR}"
 elif [[ -n "${WDIR}" ]]; then

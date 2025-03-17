@@ -13,6 +13,9 @@ process_parameter() {
 
 result=""
 
+#######################################
+# Main script execution starts here
+#######################################
 for arg in "$@"; do
   arg=$(echo "${arg}" | tr ' ' ':')
   processed_arg=$(process_parameter "${arg}")
@@ -23,6 +26,7 @@ for arg in "$@"; do
       continue
     fi
     
+    # check if item is already in result
     case "${result}" in
       "${item}"|"${item}:"|"${item}:"*|*":${item}"|*":${item}:"|*":${item}:"*)
         continue
