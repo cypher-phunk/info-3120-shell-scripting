@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for V
+do
+echo "$V"
+done    
